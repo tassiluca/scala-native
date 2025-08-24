@@ -2,6 +2,9 @@ package org.scalanative.testsuite.javalib.net
 
 import java.net._
 
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.DurationInt
+
 import org.junit.Test
 import org.junit.Assert._
 import org.junit.Assume._
@@ -233,6 +236,20 @@ class SocketTest {
     } finally {
       s.close()
     }
+  }
+
+  @Test def closeWhileConnectingByAnotherThread(): Unit = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val s = new Socket()
+    val clientThread = Future(
+      s.connect(new InetSocketAddress("203.0.113.1", 12341), 30000)
+    )
+    Thread.sleep(1000) // make sure client thread is blocked on connect
+    s.close()
+    assertThrows(
+      classOf[SocketException],
+      Await.result(clientThread, 10.seconds)
+    )
   }
 
   @Test def bind(): Unit = {

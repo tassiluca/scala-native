@@ -242,7 +242,7 @@ class SocketTest {
     import scala.concurrent.ExecutionContext.Implicits.global
     val s = new Socket()
     val clientThread = Future(
-      s.connect(new InetSocketAddress("203.0.113.1", 12341), 30000)
+      s.connect(new InetSocketAddress("203.0.113.1", 12342), 30000)
     )
     Thread.sleep(1000) // make sure client thread is blocked on connect
     s.close()

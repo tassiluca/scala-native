@@ -286,7 +286,9 @@ private[net] abstract class AbstractPlainSocketImpl extends SocketImpl {
     if (!isClosed) {
       try {
         shutdownBoth()
-      } catch case _: SocketException => ()
+      } catch {
+        case _: SocketException => ()
+      }
       if (isWindows) WinSocketApi.closeSocket(fd.handle)
       else unistd.close(fd.fd)
       fd = InvalidSocketDescriptor
@@ -332,8 +334,8 @@ private[net] abstract class AbstractPlainSocketImpl extends SocketImpl {
       case 0 => onSuccess
       case _ =>
         val side =
-          if (how == SHUT_RD) then "input"
-          else if (how == SHUT_WR) then "output"
+          if (how == SHUT_RD) "input"
+          else if (how == SHUT_WR) "output"
           else "input and output"
         throw new SocketException(
           s"Error while shutting down socket's $side. Errno: $errno"

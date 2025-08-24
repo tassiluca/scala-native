@@ -24,6 +24,7 @@ import java.io.{FileDescriptor, IOException, OutputStream, InputStream}
 import scala.scalanative.windows._
 import scala.scalanative.windows.WinSocketApi._
 import scala.scalanative.windows.WinSocketApiExt._
+import scala.scalanative.posix.sys.socket.{SHUT_RDWR, SHUT_WR, SHUT_RD}
 
 private[net] abstract class AbstractPlainSocketImpl extends SocketImpl {
   import AbstractPlainSocketImpl._
@@ -283,6 +284,9 @@ private[net] abstract class AbstractPlainSocketImpl extends SocketImpl {
 
   override def close(): Unit = {
     if (!isClosed) {
+      try {
+        shutdownBoth()
+      } catch case _: SocketException => ()
       if (isWindows) WinSocketApi.closeSocket(fd.handle)
       else unistd.close(fd.fd)
       fd = InvalidSocketDescriptor
@@ -310,21 +314,31 @@ private[net] abstract class AbstractPlainSocketImpl extends SocketImpl {
     new SocketInputStream(this)
   }
 
-  override def shutdownOutput(): Unit = {
-    socket.shutdown(fd.fd, 1) match {
-      case 0 => shutOutput = true
-      case _ =>
-        throw new SocketException("Error while shutting down socket's output")
-    }
+  override def shutdownOutput(): Unit = shutdown(SHUT_WR) {
+    shutOutput = true
   }
 
-  override def shutdownInput(): Unit = {
-    socket.shutdown(fd.fd, 0) match {
-      case 0 => shutInput = true
-      case _ =>
-        throw new SocketException("Error while shutting down socket's input")
-    }
+  override def shutdownInput(): Unit = shutdown(SHUT_RD) {
+    shutInput = true
   }
+
+  override def shutdownBoth(): Unit = shutdown(SHUT_RDWR) {
+    shutInput = true
+    shutOutput = true
+  }
+
+  private def shutdown(how: CInt)(onSuccess: => Unit): Unit =
+    socket.shutdown(fd.fd, how) match {
+      case 0 => onSuccess
+      case _ =>
+        val side =
+          if (how == SHUT_RD) then "input"
+          else if (how == SHUT_WR) then "output"
+          else "input and output"
+        throw new SocketException(
+          s"Error while shutting down socket's $side. Errno: $errno"
+        )
+    }
 
   def write(buffer: Array[Byte], offset: Int, count: Int): Int = {
     if (shutOutput) {

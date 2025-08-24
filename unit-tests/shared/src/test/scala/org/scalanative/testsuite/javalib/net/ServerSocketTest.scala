@@ -1,11 +1,15 @@
 package org.scalanative.testsuite.javalib.net
 
 import java.net._
+import java.util.concurrent.TimeUnit
 
 import org.junit.Test
 import org.junit.Assert._
 
 import org.scalanative.testsuite.utils.AssertThrows.assertThrows
+import scala.annotation.tailrec
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.DurationInt
 
 class ServerSocketTest {
 
@@ -74,6 +78,19 @@ class ServerSocketTest {
     s.close
     assertThrows(classOf[SocketException], s.accept)
     // socket already closed, all paths.
+  }
+
+  @Test def closeByAnotherThread(): Unit = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    val server = new ServerSocket(0)
+    val serverThread = Future(server.accept())
+    Thread.sleep(1_000)
+    server.close()
+    assertThrows(
+      classOf[java.net.SocketException],
+      Await.result(serverThread, 10.seconds)
+    )
   }
 
   @Test def soTimeout(): Unit = {

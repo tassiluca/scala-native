@@ -86,7 +86,7 @@ class ServerSocketTest {
 
     val server = new ServerSocket(0)
     val serverThread = Future(server.accept())
-    Thread.sleep(1_000)
+    Thread.sleep(1000)
     server.close()
     assertThrows(
       classOf[java.net.SocketException],

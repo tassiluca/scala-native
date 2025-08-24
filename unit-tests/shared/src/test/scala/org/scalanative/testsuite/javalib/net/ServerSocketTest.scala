@@ -3,13 +3,14 @@ package org.scalanative.testsuite.javalib.net
 import java.net._
 import java.util.concurrent.TimeUnit
 
+import scala.annotation.tailrec
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.DurationInt
+
 import org.junit.Test
 import org.junit.Assert._
 
 import org.scalanative.testsuite.utils.AssertThrows.assertThrows
-import scala.annotation.tailrec
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration.DurationInt
 
 class ServerSocketTest {
 
